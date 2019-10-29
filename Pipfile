@@ -11,6 +11,8 @@ pandas = "*"
 numpy = "*"
 sklearn = "*"
 category-encoders = "*"
+pylint = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.7"
