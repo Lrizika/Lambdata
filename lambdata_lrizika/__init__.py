@@ -1,2 +1,2 @@
-from . import pandas_utils
+from lambdata_lrizika import pandas_utils
 

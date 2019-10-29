@@ -1,10 +1,97 @@
-import sklearn.cluster, pandas
+import sklearn.cluster
+import pandas
 from typing import Tuple, Optional
 
-def cluster(df:pandas.DataFrame, 
-			n_clusters:int=100, 
-			by:list=None, 
-			kmeans:sklearn.cluster.KMeans=None) -> Tuple[pandas.Series, sklearn.cluster.KMeans]:
+
+class KMeansPreprocessor:
+	"""
+	Provides an sklearn-like interface for clustering as a preprocessing step.
+	"""
+
+	def __init__(	self,
+					n_clusters: int = 100,
+					by_columns: list = None,
+					to_column: str = 'cluster'):
+		"""
+		Args:
+			n_clusters (int, optional): Number of clusters to create. Defaults to 100.
+			by_columns (list, optional): Columns to cluster by. Defaults to all columns.
+			to_column (str, optional): Column name in which to save clusters. Defaults to 'cluster'.
+		"""
+
+		self.n_clusters = n_clusters
+		self.by_columns = by_columns
+		self.to_column = to_column
+		self.kmeans = None
+
+	def fit(self,
+			df: pandas.DataFrame):
+		"""
+		Computes cluster centers.
+		
+		Args:
+			df (pandas.DataFrame): Dataframe on which to cluster.
+		"""
+
+		from sklearn.cluster import KMeans
+
+		if self.by_columns is None:
+			self.by_columns = df.columns
+
+		self.kmeans = KMeans(n_clusters=self.n_clusters)
+		self.kmeans.fit(df[self.by_columns])
+
+		return(self)
+
+	def transform(	self,
+					df: pandas.DataFrame) -> pandas.DataFrame:
+		"""
+		Calculates the nearest cluster center and adds the label of that cluster as a column.
+		
+		Args:
+			df (pandas.DataFrame): Dataframe on which to cluster.
+		
+		Returns:
+			pandas.DataFrame: Copy of the dataframe with an added column of cluster labels.
+
+		Raises:
+			sklearn.exceptions.NotFittedError: If `transform` is called before `fit`.
+		"""
+
+		from sklearn.exceptions import NotFittedError
+
+		if self.kmeans is None:
+			raise NotFittedError(f'This {self.__class__.__name__} instance is not fitted yet')
+
+		output = df.copy()
+		clusters = self.kmeans.predict(output[self.by_columns])
+		output[self.to_column] = clusters
+
+		return(output)
+
+	def fit_transform(	self,
+						df: pandas.DataFrame) -> pandas.DataFrame:
+		"""
+		Computes cluster centers and adds nearest cluster labels to the dataframe as a column.
+		
+		Convenience method; equivalent to calling fit(X) followed by transform(X).
+
+		Args:
+			df (pandas.DataFrame): Dataframe on which to cluster.
+		
+		Returns:
+			pandas.DataFrame: Copy of the dataframe with an added column of cluster labels.
+		"""
+
+		self.fit(df)
+		return(self.transform(df))
+
+
+def cluster(df: pandas.DataFrame,
+			n_clusters: int = 100,
+			by: list = None,
+			kmeans: sklearn.cluster.KMeans = None
+			) -> Tuple[pandas.Series, sklearn.cluster.KMeans]:
 	"""
 	Clusters a dataframe by a set of columns
 	
@@ -24,17 +111,19 @@ def cluster(df:pandas.DataFrame,
 		by = df.columns
 
 	if kmeans is None:
-		kmeans=KMeans(n_clusters=n_clusters)
+		kmeans = KMeans(n_clusters=n_clusters)
 		kmeans.fit(df[by])
 		cluster = kmeans.labels_
 	else:
-		cluster = kmeans.predict(df[['latitude', 'longitude']])
+		cluster = kmeans.predict(df[by])
 	return(cluster, kmeans)
 
-def oneHot(	df:pandas.DataFrame, 
-			cols:Optional[list] = None,
-			exclude_cols:Optional[list] = None,
-			max_cardinality:Optional[int] = None) -> pandas.DataFrame:
+
+def oneHot(	df: pandas.DataFrame, 
+			cols: Optional[list] = None,
+			exclude_cols: Optional[list] = None,
+			max_cardinality: Optional[int] = None
+			) -> pandas.DataFrame:
 	"""
 	One-hot encodes the dataframe.
 	
@@ -51,24 +140,28 @@ def oneHot(	df:pandas.DataFrame,
 
 	one_hot_encoded = df.copy()
 
-	if cols is None: cols = list(one_hot_encoded.columns[one_hot_encoded.dtypes=='object'])
+	if cols is None: 
+		cols = list(one_hot_encoded.columns[one_hot_encoded.dtypes=='object'])
 
-	if exclude_cols is not None:
-		for col in exclude_cols:
-			cols.remove(col)
+	if exclude_cols is None:
+		exclude_cols = []
+	for col in exclude_cols:
+		cols.remove(col)
 
 	if max_cardinality is not None:
-		described = one_hot_encoded[cols].describe(exclude=[numpy.number])
-		cols = list(described.columns[described.loc['unique'] <= max_cardinality])
+		uniques = one_hot_encoded[cols].nunique()
+		cols = list(uniques[uniques <= max_cardinality].index)
 
 	encoder = category_encoders.OneHotEncoder(return_df=True, use_cat_names=True, cols=cols)
 	one_hot_encoded = encoder.fit_transform(one_hot_encoded)
 
 	return(one_hot_encoded)
 
-def keepTopN(	column:pandas.Series,
-				n:int,
-				default:Optional[object] = None) -> pandas.Series:
+
+def keepTopN(	column: pandas.Series,
+				n: int,
+				default: Optional[object] = None
+				) -> pandas.Series:
 	"""
 	Keeps the top n most popular values of a Series, while replacing the rest with `default`
 	
@@ -86,5 +179,6 @@ def keepTopN(	column:pandas.Series,
 
 	val_counts = column.value_counts()
 	if n > len(val_counts): n = len(val_counts)
-	top_n = list(val_counts[:n].index)
+	top_n = list(val_counts[: n].index)
 	return(column.where(column.isin(top_n), other=default))
+
