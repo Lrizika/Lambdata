@@ -15,7 +15,7 @@ with open("README.md", "r") as fh:
 	LONG_DESCRIPTION = fh.read()
 	setuptools.setup(
 		name="lambdata-lrizika",
-		version = "0.1.3.1",
+		version = "0.1.3.2.1",
 		author = "lrizika",
 		author_email = "lrizika.pypi.test@lrizika.com",
 		description = "a collection of data science helper functions",
