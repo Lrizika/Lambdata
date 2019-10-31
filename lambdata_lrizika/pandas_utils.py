@@ -15,7 +15,7 @@ class KMeansPreprocessor:
 		"""
 		Args:
 			n_clusters (int, optional): Number of clusters to create. Defaults to 100.
-			by_columns (list, optional): Columns to cluster by. Defaults to all columns.
+			by_columns (list, optional): Columns to cluster by. Defaults to all numeric columns.
 			to_column (str, optional): Column name in which to save clusters. Defaults to 'cluster'.
 		"""
 
@@ -34,9 +34,10 @@ class KMeansPreprocessor:
 		"""
 
 		from sklearn.cluster import KMeans
+		from numpy import number as npnumber
 
 		if self.by_columns is None:
-			self.by_columns = df.columns
+			self.by_columns = df.select_dtypes(include=[npnumber]).columns
 
 		self.kmeans = KMeans(n_clusters=self.n_clusters)
 		self.kmeans.fit(df[self.by_columns])
