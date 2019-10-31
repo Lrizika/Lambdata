@@ -13,6 +13,8 @@ sklearn = "*"
 category-encoders = "*"
 pylint = "*"
 mypy = "*"
+pytest = "*"
+patsy = "*"
 
 [requires]
 python_version = "3.7"
