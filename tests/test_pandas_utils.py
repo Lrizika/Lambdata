@@ -85,16 +85,23 @@ class TestKMeansPreprocessor:
 	Tests lambdata_lrizika.pandas_utils.KMeansPreprocessor
 	"""
 
-	clusterer_3 = pandas_utils.KMeansPreprocessor(n_clusters=3)
-
 	def test_fit_transform(self):
 		""" Tests that fit_transform results in expected output format """
-		clustered = self.clusterer_3.fit_transform(example_dataframe)
+		clusterer_3 = pandas_utils.KMeansPreprocessor(n_clusters=3)
+		clustered = clusterer_3.fit_transform(example_dataframe)
 		assert list(clustered.columns) == list(example_dataframe.columns) + ['cluster']
 	def test_fit_transform_results(self):
-		""" Tests that clustering with three clusters creates expected results """
-		clustered = self.clusterer_3.fit_transform(example_dataframe)
-		assert (clustered['cluster'] == clustered.iloc[0]['cluster']).equals(pandas.Series([True, True, False, True, True, False, False, True, True]))
-		assert (clustered['cluster'] == clustered.iloc[2]['cluster']).equals(pandas.Series([False, False, True, False, False, False, False, False, False]))
-		assert (clustered['cluster'] == clustered.iloc[6]['cluster']).equals(pandas.Series([False, False, False, False, False, True, True, False, False]))
+		""" Tests that clustering with two clusters creates expected results """
+		clusterer_2 = pandas_utils.KMeansPreprocessor(n_clusters=2)
+		clustered = clusterer_2.fit_transform(example_dataframe)
+		assert (clustered['cluster'] == clustered.iloc[0]['cluster']).equals(pandas.Series([True, True, False, True, True, True, False, True, True]))
+		assert (clustered['cluster'] == clustered.iloc[2]['cluster']).equals(pandas.Series([False, False, True, False, False, False, True, False, False]))
+	def test_pipeline(self):
+		""" Tests that the preprocessor works in a pipeline """
+		clusterer_3 = pandas_utils.KMeansPreprocessor(n_clusters=3)
+		from sklearn.pipeline import Pipeline
+		pipeline = Pipeline([('Clusterer', clusterer_3)])
+		assert set(pipeline.fit_transform(example_dataframe)['cluster'].unique()) == {0,1,2}
+		assert pipeline.fit_transform(example_dataframe).shape == clusterer_3.fit_transform(example_dataframe).shape
+
 
