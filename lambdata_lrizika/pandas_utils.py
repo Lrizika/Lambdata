@@ -25,32 +25,36 @@ class KMeansPreprocessor:
 		self.kmeans = None
 
 	def fit(self,
-			df: pandas.DataFrame):
+			X: pandas.DataFrame,
+			y: None = None):
 		"""
 		Computes cluster centers.
 		
 		Args:
-			df (pandas.DataFrame): Dataframe on which to cluster.
+			X (pandas.DataFrame): Dataframe on which to cluster.
+			y (None): Dummy argument for sklearn pipelining. Never used.
 		"""
 
 		from sklearn.cluster import KMeans
 		from numpy import number as npnumber
 
 		if self.by_columns is None:
-			self.by_columns = df.select_dtypes(include=[npnumber]).columns
+			self.by_columns = X.select_dtypes(include=[npnumber]).columns
 
 		self.kmeans = KMeans(n_clusters=self.n_clusters)
-		self.kmeans.fit(df[self.by_columns])
+		self.kmeans.fit(X[self.by_columns])
 
 		return(self)
 
 	def transform(	self,
-					df: pandas.DataFrame) -> pandas.DataFrame:
+					X: pandas.DataFrame,
+					y: None = None) -> pandas.DataFrame:
 		"""
 		Calculates the nearest cluster center and adds the label of that cluster as a column.
 		
 		Args:
-			df (pandas.DataFrame): Dataframe on which to cluster.
+			X (pandas.DataFrame): Dataframe on which to cluster.
+			y (None): Dummy argument for sklearn pipelining. Never used.
 		
 		Returns:
 			pandas.DataFrame: Copy of the dataframe with an added column of cluster labels.
@@ -64,28 +68,30 @@ class KMeansPreprocessor:
 		if self.kmeans is None:
 			raise NotFittedError(f'This {self.__class__.__name__} instance is not fitted yet')
 
-		output = df.copy()
+		output = X.copy()
 		clusters = self.kmeans.predict(output[self.by_columns])
 		output[self.to_column] = clusters
 
 		return(output)
 
 	def fit_transform(	self,
-						df: pandas.DataFrame) -> pandas.DataFrame:
+						X: pandas.DataFrame,
+						y: None = None) -> pandas.DataFrame:
 		"""
 		Computes cluster centers and adds nearest cluster labels to the dataframe as a column.
 		
 		Convenience method; equivalent to calling fit(X) followed by transform(X).
 
 		Args:
-			df (pandas.DataFrame): Dataframe on which to cluster.
+			X (pandas.DataFrame): Dataframe on which to cluster.
+			y (None): Dummy argument for sklearn pipelining. Never used.
 		
 		Returns:
 			pandas.DataFrame: Copy of the dataframe with an added column of cluster labels.
 		"""
 
-		self.fit(df)
-		return(self.transform(df))
+		self.fit(X)
+		return(self.transform(X))
 
 
 def cluster(df: pandas.DataFrame,
